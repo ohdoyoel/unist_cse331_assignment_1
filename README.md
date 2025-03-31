@@ -12,7 +12,7 @@ This repository contains the source codes for **Assignment 1** of the course **C
 
 ## Author
 
-- Name: Doyoel Oh
+- Name: Doyeol Oh
 - Student ID: 20211187
 - Email: ohdoyoel@unist.ac.kr
 
