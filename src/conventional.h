@@ -1,12 +1,14 @@
 #pragma once
-#include <vector>
+#include "type.h"
 
-void bubbleSort(std::vector<int>& arr);
-void selectionSort(std::vector<int>& arr);
-void insertionSort(std::vector<int>& arr);
-void insertionSort(std::vector<int>& arr, int left, int right);
-void heapSort(std::vector<int>& arr);
-void heapSort(std::vector<int>& arr, int left, int right);
-void merge(std::vector<int>& arr, int left, int mid, int right);
-void mergeSort(std::vector<int>& arr);
-void quickSort(std::vector<int>& arr);
+void bubbleSort(TaggedValue* A, int n);
+void selectionSort(TaggedValue* A, int n);
+void insertionSort(TaggedValue* A, int left, int right);
+void insertionSort(TaggedValue* A, int n);
+int partition(TaggedValue* A, int low, int high);
+void quickSort(TaggedValue* A, int n);
+void quickSort2(TaggedValue* A, int n);
+void heapSort(TaggedValue* A, int low, int high);
+void heapSort(TaggedValue* A, int n);
+void merge(TaggedValue* A, int left, int mid, int right);
+void mergeSort(TaggedValue* A, int n);
