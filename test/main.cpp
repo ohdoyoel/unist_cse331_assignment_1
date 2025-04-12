@@ -159,6 +159,7 @@ std::vector<TestFileInfo> parseAndSortTestFiles(const std::vector<std::string>& 
 
 int main() {
     const int trials = 10;
+    // for generating test cases, uncomment the following line:
     // generateAllTestcases({1000, 10000, 100000, 1000000}, trials);
 
     const std::string testFolder = "test/testCase";
@@ -167,17 +168,17 @@ int main() {
         const char* name;
         SortFunction fn;
     } algorithms[] = {
-        // {"Bubble", bubbleSort},
-        // {"Selection", selectionSort},
-        // {"Insertion", insertionSort},
-        // {"Quick", quickSort},
-        // {"Quick2", quickSort2},
+        {"Bubble", bubbleSort},
+        {"Selection", selectionSort},
+        {"Insertion", insertionSort},
+        {"Quick", quickSort},
+        {"Quick2", quickSort2},
         {"Heap", heapSort},
         {"Merge", mergeSort},
-        // {"Cocktail", cocktailShakerSort},
-        // {"Comb", combSort},
+        {"Cocktail", cocktailShakerSort},
+        {"Comb", combSort},
         {"Tournament", tournamentSort},
-        // {"Library", librarySort},
+        {"Library", librarySort},
         {"Intro", introSort},
         {"Tim", timSort}
     }; // can use comments for experimental restrictions
@@ -194,7 +195,7 @@ int main() {
         std::cout << "\n" << algo.name << " Sort Progress:\n";
 
         for (const auto& file : testFiles) {
-            if (file.size != 1000000) continue;
+            // if (file.size != 1000000) continue;
             // if (file.type != "random") continue;
             // also can use if statements for experimental restrictions
 
