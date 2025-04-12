@@ -4,6 +4,8 @@
 #include <stdexcept>
 #include <iostream>
 #include <cstring>
+#include <windows.h>
+#include <vector>
 #include "conventional.h"
 
 // Cocktail Shaker Sort
@@ -231,29 +233,54 @@ void timSort(TaggedValue* A, int n) {
     }
 }
 
-// TimSort with Multithreaded Merge
-#include <thread>
+// TimSort2, TimSort with Multithreaded Merge
+struct MergeArgs {
+    TaggedValue* A;
+    int left;
+    int mid;
+    int right;
+};
+
+DWORD WINAPI mergeThread(LPVOID lpParam) {
+    MergeArgs* args = static_cast<MergeArgs*>(lpParam);
+    merge(args->A, args->left, args->mid, args->right);
+    delete args;
+    return 0;
+}
+
 void parallelMerge(TaggedValue* A, int n, int step) {
     int total = (n + 2 * step - 1) / (2 * step);
-    std::thread* threads = new std::thread[total];
+    HANDLE* handles = new HANDLE[total];
     int count = 0;
+
     for (int i = 0; i < total; ++i) {
         int left = i * 2 * step;
         int mid = std::min(left + step - 1, n - 1);
         int right = std::min(left + 2 * step - 1, n - 1);
+
         if (mid < right) {
-            threads[count++] = std::thread(merge, A, left, mid, right);
+            MergeArgs* args = new MergeArgs{A, left, mid, right};
+            handles[count] = CreateThread(
+                NULL, 0, mergeThread, args, 0, NULL
+            );
+            if (handles[count]) ++count;
+            else delete args;
         }
     }
-    for (int i = 0; i < count; ++i) {
-        if (threads[i].joinable()) threads[i].join();
-    }
-    delete[] threads;
+
+    WaitForMultipleObjects(count, handles, TRUE, INFINITE);
+
+    for (int i = 0; i < count; ++i)
+        CloseHandle(handles[i]);
+
+    delete[] handles;
 }
+
 void timSort2(TaggedValue* A, int n) {
     for (int i = 0; i < n; i += RUN) {
         insertionSort(A, i, std::min(i + RUN - 1, n - 1));
     }
+
     for (int size = RUN; size < n; size *= 2) {
         parallelMerge(A, n, size);
     }
