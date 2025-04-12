@@ -6,3 +6,4 @@ void tournamentSort(TaggedValue* A, int n);
 void librarySort(TaggedValue* A, int n);
 void introSort(TaggedValue* A, int n);
 void timSort(TaggedValue* A, int n);
+void timSort2(TaggedValue* A, int n);

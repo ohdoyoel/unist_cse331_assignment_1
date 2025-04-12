@@ -180,7 +180,8 @@ int main() {
         {"Tournament", tournamentSort},
         {"Library", librarySort},
         {"Intro", introSort},
-        {"Tim", timSort}
+        {"Tim", timSort},
+        {"Tim2", timSort2},
     }; // can use comments for experimental restrictions
 
     std::vector<std::string> rawFiles = getAllTestFiles(testFolder);
