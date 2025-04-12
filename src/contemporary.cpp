@@ -230,3 +230,31 @@ void timSort(TaggedValue* A, int n) {
         }
     }
 }
+
+// TimSort with Multithreaded Merge
+#include <thread>
+void parallelMerge(TaggedValue* A, int n, int step) {
+    int total = (n + 2 * step - 1) / (2 * step);
+    std::thread* threads = new std::thread[total];
+    int count = 0;
+    for (int i = 0; i < total; ++i) {
+        int left = i * 2 * step;
+        int mid = std::min(left + step - 1, n - 1);
+        int right = std::min(left + 2 * step - 1, n - 1);
+        if (mid < right) {
+            threads[count++] = std::thread(merge, A, left, mid, right);
+        }
+    }
+    for (int i = 0; i < count; ++i) {
+        if (threads[i].joinable()) threads[i].join();
+    }
+    delete[] threads;
+}
+void timSort2(TaggedValue* A, int n) {
+    for (int i = 0; i < n; i += RUN) {
+        insertionSort(A, i, std::min(i + RUN - 1, n - 1));
+    }
+    for (int size = RUN; size < n; size *= 2) {
+        parallelMerge(A, n, size);
+    }
+}
