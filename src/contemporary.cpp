@@ -1,27 +1,30 @@
-#include <vector>
 #include <algorithm>
+#include <climits>
+#include <cmath>
+#include <stdexcept>
+// #include <vector>
+#include <iostream>
+#include <cstring>
 #include "conventional.h"
-#define INT_MAX 2147483647
 
 // Cocktail Shaker Sort
-void cocktailShakerSort(std::vector<int>& arr) {
-    int n = arr.size();
-    bool swapped = true;
+void cocktailShakerSort(TaggedValue* A, int n) {
     int start = 0, end = n - 1;
+    bool swapped = true;
     while (swapped) {
         swapped = false;
         for (int i = start; i < end; ++i) {
-            if (arr[i] > arr[i + 1]) {
-                std::swap(arr[i], arr[i + 1]);
+            if (A[i].value > A[i + 1].value) {
+                std::swap(A[i], A[i + 1]);
                 swapped = true;
             }
         }
         if (!swapped) break;
-        swapped = false;
         --end;
+        swapped = false;
         for (int i = end - 1; i >= start; --i) {
-            if (arr[i] > arr[i + 1]) {
-                std::swap(arr[i], arr[i + 1]);
+            if (A[i].value > A[i + 1].value) {
+                std::swap(A[i], A[i + 1]);
                 swapped = true;
             }
         }
@@ -30,19 +33,17 @@ void cocktailShakerSort(std::vector<int>& arr) {
 }
 
 // Comb Sort
-void combSort(std::vector<int>& arr) {
-    int n = arr.size();
-    float shrink = 1.3f;
+void combSort(TaggedValue* A, int n) {
     int gap = n;
+    const double shrink = 1.3;
     bool swapped = true;
     while (gap > 1 || swapped) {
         gap = static_cast<int>(gap / shrink);
         if (gap < 1) gap = 1;
         swapped = false;
-
         for (int i = 0; i < n - gap; ++i) {
-            if (arr[i] > arr[i + gap]) {
-                std::swap(arr[i], arr[i + gap]);
+            if (A[i].value > A[i + gap].value) {
+                std::swap(A[i], A[i + gap]);
                 swapped = true;
             }
         }
@@ -50,102 +51,390 @@ void combSort(std::vector<int>& arr) {
 }
 
 // Tournament Sort
-int buildTree(std::vector<int>& tree, const std::vector<int>& arr) {
-    int n = arr.size();
-    int offset = 1;
-    while (offset < n) offset *= 2;
-    tree.resize(2 * offset, INT_MAX);
-    for (int i = 0; i < n; ++i) tree[offset + i] = arr[i];
-    for (int i = offset - 1; i > 0; --i) tree[i] = std::min(tree[2 * i], tree[2 * i + 1]);
-    return offset;
-}
-void updateTree(std::vector<int>& tree, int index, int offset) {
-    tree[offset + index] = INT_MAX;
-    int i = (offset + index) / 2;
-    while (i > 0) {
-        tree[i] = std::min(tree[2 * i], tree[2 * i + 1]);
-        i /= 2;
-    }
-}
-std::vector<int> tournamentSort(const std::vector<int>& arr) {
-    std::vector<int> tree;
-    int offset = buildTree(tree, arr);
-    std::vector<int> result;
-    for (int k = 0; k < arr.size(); ++k) {
-        int winner = tree[1];
-        result.push_back(winner);
-        int i = 1;
-        while (i < offset) {
-            i *= 2;
-            if (tree[i] != winner) ++i;
+void tournamentSort(TaggedValue* A, int n) {
+    int m = 1;
+    while (m < n) m *= 2;
+    TaggedValue* T = new TaggedValue[2 * m - 1];
+    for (int i = 0; i < n; ++i)
+        T[m - 1 + i] = A[i];
+    for (int i = m - 1 + n; i < 2 * m - 1; ++i)
+        T[i].value = INT_MAX;
+    for (int i = m - 2; i >= 0; --i)
+        T[i] = (T[2 * i + 1].value <= T[2 * i + 2].value) ? T[2 * i + 1] : T[2 * i + 2];
+    for (int k = 0; k < n; ++k) {
+        A[k] = T[0];
+        int i = m - 1;
+        while (i < m - 1 + n && !(T[i].value == T[0].value && T[i].originalIndex == T[0].originalIndex))
+            ++i;
+
+        if (i >= m - 1 + n) {
+            std::cerr << "[Error] Matching leaf not found for T[0]!\n";
+            delete[] T;
+            return;
         }
-        int index = i - offset;
-        updateTree(tree, index, offset);
+        
+        T[i].value = INT_MAX;
+        while (i > 0) {
+            i = (i - 1) / 2;
+            T[i] = (T[2 * i + 1].value <= T[2 * i + 2].value) ? T[2 * i + 1] : T[2 * i + 2];
+        }
     }
-    return result;
+    delete[] T;
 }
 
 // Library Sort
-std::vector<int> librarySort(std::vector<int> A) {
-    int n = A.size();
-    std::vector<int> S(2 * n, INT_MAX);
-    int count = 0;
-    auto insert = [&](int x) {
-        int left = 0, right = 2 * n - 1;
-        while (left < right) {
-            int mid = (left + right) / 2;
-            if (S[mid] == INT_MAX || S[mid] > x) right = mid;
-            else left = mid + 1;
+int findNear(TaggedValue* arr, bool* filled, int index, int start, int end) {
+    if (filled[index]) return index;
+    int left = index - 1, right = index + 1;
+    while (left >= start || right <= end) {
+        if (left >= start && filled[left]) return left;
+        if (right <= end && filled[right]) return right;
+        --left; ++right;
+    }
+    return -1;
+}
+int libinary(TaggedValue* arr, bool* filled, int len, int val) {
+    int left = 0, right = len - 1;
+    while (left <= right) {
+        int mid = (left + right) / 2;
+        int found = findNear(arr, filled, mid, left, right);
+        if (found == -1) break;
+        if (val < arr[found].value) right = found - 1;
+        else left = found + 1;
+    }
+    return (left + right) / 2;
+}
+int nearNull(bool* filled, int len, int index) {
+    int left = index - 1, right = index + 1;
+    while (left >= 0 || right < len) {
+        if (left >= 0 && !filled[left]) return left;
+        if (right < len && !filled[right]) return right;
+        --left; ++right;
+    }
+    return -1;
+}
+void librarySort(TaggedValue* A, int n) {
+    int bigLen = n * 2;
+    TaggedValue* bigArr = new TaggedValue[bigLen];
+    bool* filled = new bool[bigLen];
+    std::memset(filled, 0, bigLen * sizeof(bool));
+
+    int mid = bigLen / 2;
+    bigArr[mid] = A[0];
+    filled[mid] = true;
+
+    int count = 1;
+
+    for (int i = 1; i < n; ++i) {
+        if ((i & (i - 1)) == 0) {
+            TaggedValue* temp = new TaggedValue[count];
+            int idx = 0;
+            for (int j = 0; j < bigLen; ++j) {
+                if (filled[j]) temp[idx++] = bigArr[j];
+            }
+
+            std::memset(filled, 0, bigLen * sizeof(bool));
+            int gap = bigLen / (count + 1);
+            int pos = gap;
+            for (int j = 0; j < count; ++j) {
+                bigArr[pos] = temp[j];
+                filled[pos] = true;
+                pos += gap;
+            }
+
+            delete[] temp;
         }
-        while (S[left] != INT_MAX) ++left;
-        S[left] = x;
+
+        int insertIndex = libinary(bigArr, filled, bigLen, A[i].value);
+
+        if (!filled[insertIndex]) {
+            bigArr[insertIndex] = A[i];
+            filled[insertIndex] = true;
+        } else {
+            int nullIndex = nearNull(filled, bigLen, insertIndex);
+            if (nullIndex == -1) continue;
+
+            if (nullIndex < insertIndex) {
+                if (bigArr[insertIndex].value <= A[i].value) {
+                    for (int j = nullIndex; j < insertIndex; ++j) {
+                        bigArr[j] = bigArr[j + 1];
+                        filled[j] = filled[j + 1];
+                    }
+                    bigArr[insertIndex] = A[i];
+                    filled[insertIndex] = true;
+                } else {
+                    for (int j = nullIndex; j < insertIndex - 1; ++j) {
+                        bigArr[j] = bigArr[j + 1];
+                        filled[j] = filled[j + 1];
+                    }
+                    bigArr[insertIndex - 1] = A[i];
+                    filled[insertIndex - 1] = true;
+                }
+            } else {
+                if (bigArr[insertIndex].value <= A[i].value) {
+                    for (int j = nullIndex; j > insertIndex + 1; --j) {
+                        bigArr[j] = bigArr[j - 1];
+                        filled[j] = filled[j - 1];
+                    }
+                    bigArr[insertIndex + 1] = A[i];
+                    filled[insertIndex + 1] = true;
+                } else {
+                    for (int j = nullIndex; j > insertIndex; --j) {
+                        bigArr[j] = bigArr[j - 1];
+                        filled[j] = filled[j - 1];
+                    }
+                    bigArr[insertIndex] = A[i];
+                    filled[insertIndex] = true;
+                }
+            }
+        }
         ++count;
-    };
-    for (int x : A) insert(x);
-    std::vector<int> result;
-    for (int x : S)
-        if (x != INT_MAX)
-            result.push_back(x);
-    return result;
+    }
+
+    int idx = 0;
+    for (int i = 0; i < bigLen && idx < n; ++i) {
+        if (filled[i]) A[idx++] = bigArr[i];
+    }
+
+    delete[] bigArr;
+    delete[] filled;
 }
 
+
+// void rebalance(TaggedValue* S, int begin, int end) {
+//     int r = end;
+//     int w = 2 * end;
+//     while (r >= begin) {
+//         S[w] = S[r];
+//         S[w - 1].value = INT_MAX;
+//         S[w - 1].originalIndex = -1; // gap
+//         r--;
+//         w -= 2;
+//     }
+// }
+
+// int binarySearchSkipGaps(TaggedValue x, TaggedValue* S, int k) {
+//     int left = 1;
+//     int right = k;
+//     int mid;
+
+//     while (left <= right) {
+//         int l = left, r = right;
+
+//         // skip gaps: adjust l and r to land on non-gap values
+//         while (l <= r && S[l].value == INT_MAX) l++;
+//         while (l <= r && S[r].value == INT_MAX) r--;
+//         if (l > r) break;
+
+//         int midCandidate = (l + r) / 2;
+
+//         // Find actual non-gap mid by scanning outward
+//         mid = midCandidate;
+//         while (S[mid].value == INT_MAX && mid < r) mid++;
+//         if (S[mid].value == INT_MAX) {
+//             mid = midCandidate;
+//             while (S[mid].value == INT_MAX && mid > l) mid--;
+//             if (S[mid].value == INT_MAX) break;
+//         }
+
+//         if (x.value < S[mid].value) {
+//             right = mid - 1;
+//         } else {
+//             left = mid + 1;
+//         }
+//     }
+
+//     // Now find nearest gap from position 'left'
+//     int insertPos = left;
+//     while (insertPos <= k && S[insertPos].value != INT_MAX) {
+//         insertPos++;
+//     }
+//     return insertPos;
+// }
+
+// void librarySort(TaggedValue* A, int n) {
+//     const int size = 2 * n + 2; // padding
+//     TaggedValue* S = new TaggedValue[size];
+//     for (int i = 0; i < size; ++i) {
+//         S[i].value = INT_MAX;
+//         S[i].originalIndex = -1;
+//     }
+
+//     S[1] = A[0];
+
+//     int rounds = (int)std::log2(n - 1);
+//     for (int i = 1; i <= rounds; ++i) {
+//         int start = 1;
+//         int end = (1 << (i - 1));
+//         rebalance(S, start, end);
+
+//         for (int j = (1 << (i - 1)) + 1; j <= (1 << i) && j <= n; ++j) {
+//             int pos = binarySearchSkipGaps(A[j - 1], S, (1 << i));
+//             S[pos] = A[j - 1];
+//         }
+//     }
+
+//     // Copy sorted non-gaps back to A
+//     int idx = 0;
+//     for (int i = 1; i < size; ++i) {
+//         if (S[i].value != INT_MAX) {
+//             A[idx++] = S[i];
+//         }
+//     }
+
+//     delete[] S;
+// }
+
+
+// const TaggedValue GAP_TAG = { INT_MIN, -1 };
+
+// bool isGap(const TaggedValue& tv) {
+//     return tv.value == GAP_TAG.value && tv.originalIndex == GAP_TAG.originalIndex;
+// }
+
+// void rebalance(TaggedValue* S, int capacity) {
+//     std::vector<TaggedValue> compact;
+//     for (int i = 0; i < capacity; ++i) {
+//         if (!isGap(S[i])) {
+//             compact.push_back(S[i]);
+//         }
+//     }
+
+//     for (int i = 0; i < capacity; ++i) {
+//         S[i] = GAP_TAG;
+//     }
+
+//     int spacing = 2;  // can be adjusted
+//     int idx = 0;
+//     for (int i = 0; i < compact.size(); ++i) {
+//         int pos = idx;
+//         while (pos < capacity && !isGap(S[pos])) {
+//             pos++;
+//         }
+//         if (pos < capacity) {
+//             S[pos] = compact[i];
+//         } else {
+//             // should not happen with enough capacity
+//         }
+//         idx += spacing;
+//     }
+// }
+
+// int binarySearchInsertionPos(TaggedValue* S, int size, const TaggedValue& target) {
+//     int left = 0;
+//     int right = size - 1;
+
+//     while (left <= right) {
+//         int mid = (left + right) / 2;
+
+//         // skip gaps to the left
+//         int midLeft = mid;
+//         while (midLeft >= left && isGap(S[midLeft])) midLeft--;
+//         if (midLeft < left) {
+//             right = mid - 1;
+//             continue;
+//         }
+
+//         if (S[midLeft].value < target.value) {
+//             left = mid + 1;
+//         } else if (S[midLeft].value > target.value) {
+//             right = midLeft - 1;
+//         } else {
+//             // handle duplicates
+//             while (midLeft > left && S[midLeft - 1].value == target.value) midLeft--;
+//             while (midLeft < size &&
+//                    S[midLeft].value == target.value &&
+//                    S[midLeft].originalIndex < target.originalIndex) {
+//                 midLeft++;
+//             }
+//             return midLeft;
+//         }
+//     }
+
+//     return left;
+// }
+
+// int findEmptySlotRight(TaggedValue* S, int from, int capacity) {
+//     for (int i = from; i < capacity; ++i) {
+//         if (isGap(S[i])) return i;
+//     }
+//     return -1;
+// }
+
+// void librarySort(TaggedValue* arr, int n) {
+//     if (n <= 1) return;
+
+//     int capacity = n * 4;  // generous buffer
+//     TaggedValue* S = new TaggedValue[capacity];
+//     for (int i = 0; i < capacity; ++i) S[i] = GAP_TAG;
+
+//     int itemCount = 1;
+//     S[0] = arr[0];
+
+//     for (int i = 1; i < n; ++i) {
+//         if ((i & (i - 1)) == 0) {
+//             rebalance(S, capacity);
+//         }
+
+//         int logicalPos = binarySearchInsertionPos(S, capacity, arr[i]);
+
+//         // find empty spot for actual insertion
+//         int insertPos = findEmptySlotRight(S, logicalPos, capacity);
+//         if (insertPos == -1) {
+//             // fallback: full scan
+//             for (insertPos = capacity - 1; insertPos >= 0; --insertPos) {
+//                 if (isGap(S[insertPos])) break;
+//             }
+//         }
+
+//         // shift to the right to make room
+//         for (int j = insertPos; j > logicalPos; --j) {
+//             S[j] = S[j - 1];
+//         }
+
+//         S[logicalPos] = arr[i];
+//         itemCount++;
+//     }
+
+//     // write back to original array
+//     int idx = 0;
+//     for (int i = 0; i < capacity && idx < n; ++i) {
+//         if (!isGap(S[i])) {
+//             arr[idx++] = S[i];
+//         }
+//     }
+
+//     delete[] S;
+// }
+
 // Intro Sort
-void introSort(std::vector<int>& arr, int left, int right, int depthLimit) {
-    int size = right - left + 1;
-    if (size < 16) {
-        insertionSort(arr, left, right);
-        return;
+void introSortRecursive(TaggedValue* A, int lo, int hi, int depthLimit) {
+    if (hi - lo <= 16) {
+        insertionSort(A, lo, hi);
+    } else if (depthLimit == 0) {
+        heapSort(A, lo, hi);
+    } else {
+        int p = partition(A, lo, hi);
+        introSortRecursive(A, lo, p - 1, depthLimit - 1);
+        introSortRecursive(A, p + 1, hi, depthLimit - 1);
     }
-    if (depthLimit == 0) {
-        heapSort(arr, left, right);
-        return;
-    }
-
-    int pivot = arr[(left + right) / 2];
-    int i = left, j = right;
-    while (i <= j) {
-        while (arr[i] < pivot) ++i;
-        while (arr[j] > pivot) --j;
-        if (i <= j) std::swap(arr[i++], arr[j--]);
-    }
-
-    if (left < j) introSort(arr, left, j, depthLimit - 1);
-    if (i < right) introSort(arr, i, right, depthLimit - 1);
+}
+void introSort(TaggedValue* A, int n) {
+    int depthLimit = 2 * static_cast<int>(std::log2(n));
+    introSortRecursive(A, 0, n - 1, depthLimit);
 }
 
 // Tim Sort
 const int RUN = 32;
-void timSort(std::vector<int>& arr) {
-    int n = arr.size();
+void timSort(TaggedValue* A, int n) {
     for (int i = 0; i < n; i += RUN)
-        insertionSort(arr, i, std::min(i + RUN - 1, n - 1));
-
+        insertionSort(A, i, std::min(i + RUN - 1, n - 1));
     for (int size = RUN; size < n; size *= 2) {
         for (int left = 0; left < n; left += 2 * size) {
             int mid = std::min(left + size - 1, n - 1);
             int right = std::min(left + 2 * size - 1, n - 1);
             if (mid < right)
-                merge(arr, left, mid, right);
+                merge(A, left, mid, right);
         }
     }
 }

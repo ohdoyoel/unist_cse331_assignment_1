@@ -1,9 +1,8 @@
 #pragma once
-#include <vector>
 
-void cockTailShakerSort(std::vector<int>& arr);
-void combSort(std::vector<int>& arr);
-void tournamentSort(std::vector<int>& arr);
-void librarySort(std::vector<int>& arr);
-void introSort(std::vector<int>& arr);
-void timSort(std::vector<int>& arr);
+void cocktailShakerSort(TaggedValue* A, int n);
+void combSort(TaggedValue* A, int n);
+void tournamentSort(TaggedValue* A, int n);
+void librarySort(TaggedValue* A, int n);
+void introSort(TaggedValue* A, int n);
+void timSort(TaggedValue* A, int n);
